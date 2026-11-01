@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TELA - Impressora</title>
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+<style>
+body{margin:0;background:#111;color:#fff;font-family:sans-serif;display:flex;flex-direction:column;height:100vh}
+.top{padding:10px;background:#222;text-align:center}
+.printer{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(#222,#000)}
+.paper{width:85%;max-width:400px;background:#fff;color:#000;padding:20px;border-radius:10px;min-height:120px;transform:translateY(-100%);transition:0.6s;opacity:0}
+.paper.show{transform:translateY(0);opacity:1}
+.gift{font-size:32px} .nome{font-weight:bold;font-size:22px;margin:10px 0}
+.qr{margin-top:10px;font-size:12px;opacity:0.7}
+</style></head><body>
+<div class="top">📺 TELA - Sala: <span id="room"></span> | <span id="status">Conectando...</span></div>
+<div class="printer"><div id="paper" class="paper"></div><div class="qr">Impressora ONLINE - Aguardando</div></div>
+<script>
+const params=new URLSearchParams(location.search);
+let room=params.get('room')||'TESTE123';
+document.getElementById('room').innerText=room;
+const socket=io();
+socket.on('connect',()=>{
+ document.getElementById('status').innerText='Conectado ✅';
+ socket.emit('join_room',{roomId:room});
+});
+socket.on('print_gift',(data)=>{
+ const p=document.getElementById('paper');
+ let html='';
+ if(data.tipo==='faq'){html=`<div class="gift">❓ FAQ</div><div class="nome">${data.pergunta||''}</div><div>💬 ${data.resposta||''}</div>`;}
+ else if(data.tipo==='copy'){html=`<div class="gift">📢 COPY</div><div>${data.mensagem||data.texto||''}</div>`;}
+ else{html=`<div class="gift">${data.icone||'🎁'} ${data.presente||'Presente'}</div><div class="nome">${data.nome||'Anonimo'}</div><div>${data.mensagem||''}</div>`;}
+ p.innerHTML=html; p.classList.remove('show'); setTimeout(()=>p.classList.add('show'),100);
+ if(data.audio){let a=new Audio(data.audio); a.play().catch(()=>{});}
+});
+socket.on('paired',()=>{document.getElementById('status').innerText='Controle Conectado ✅';});
+</script></body></html>
