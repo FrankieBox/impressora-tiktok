@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>CONTROLE PRO + @ Live TikTok</title>
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#fff;font-family:Inter,sans-serif;display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+.header{background:linear-gradient(180deg,#1a1a1a,#111);padding:12px 14px;border-bottom:1px solid #222}
+.room-row{display:flex;gap:8px}
+.input{flex:1;padding:12px 14px;border-radius:10px;border:1px solid #333;background:#1e1e1e;color:#fff;font-weight:600;font-size:15px}
+.input:focus{border-color:#FE2C55;outline:none}
+.btn{padding:12px 16px;border-radius:10px;border:none;font-weight:800;font-size:13px;cursor:pointer}
+.btn-conn{background:#25F4EE;color:#000}
+.btn-auto{background:#FE2C55;color:#fff;flex:1}
+.btn-auto.ativo{background:#22c55e}
+.btn-auto.erro{background:#ef4444}
+.status-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.pill{font-size:11px;padding:5px 10px;border-radius:20px;background:#222;border:1px solid #333}
+.pill.ok{background:#22c55e22;border-color:#22c55e;color:#22c55e}
+.pill.warn{background:#f59e0b22;border-color:#f59e0b;color:#f59e0b}
+.pill.error{background:#ef444422;border-color:#ef4444;color:#ef4444}
+.tabs{display:flex;gap:6px;padding:10px;background:#0f0f0f;border-bottom:1px solid #222;overflow-x:auto}
+.tab{padding:8px 14px;border-radius:20px;background:#1e1e1e;border:1px solid #2a2a2a;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer}
+.tab.active{background:#FE2C55;border-color:#FE2C55;color:#fff}
+.content{flex:1;overflow-y:auto;padding:12px;background:#0a0a0a}
+.panel{display:none;flex-direction:column;gap:10px}
+.panel.active{display:flex}
+.card{background:#151515;border:1px solid #222;border-radius:14px;padding:12px}
+.card-title{font-size:11px;opacity:0.6;letter-spacing:1px;margin-bottom:8px}
+.btn-full{width:100%;padding:16px;border-radius:12px;border:none;font-weight:800;font-size:16px;cursor:pointer;background:linear-gradient(135deg,#FE2C55,#FE2C55);color:#fff;margin-top:8px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.gift-btn{background:#1e1e1e;border:1px solid #2a2a2a;border-radius:14px;padding:14px 6px;text-align:center;font-size:12px;font-weight:600;cursor:pointer}
+.gift-btn:active{background:#FE2C55}
+.gift-btn span{font-size:22px;display:block;margin-bottom:4px}
+.list{max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.item{background:#1a1a1a;border:1px solid #222;border-radius:10px;padding:10px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+</style></head><body>
+<div class="header">
+<div class="room-row">
+<input id="room" value="LOJA" placeholder="Sala">
+<button class="btn btn-conn" onclick="conectar()">CONECTAR</button>
+</div>
+<div style="display:flex;gap:8px;margin-top:10px">
+<input id="tiktokUser" class="input" placeholder="@ da Live TikTok (ex: @greensinal)" style="flex:1">
+<button id="btnAuto" class="btn btn-auto" onclick="ativarAuto()">🔴 ATIVAR AUTO</button>
+</div>
+<div class="status-row">
+<div id="status" class="pill warn">● Conectando sala...</div>
+<div id="tiktokStatus" class="pill">TikTok: Desconectado</div>
+<div id="filaPill" class="pill">Fila: 0</div>
+</div>
+<small id="tiktokMsg" style="opacity:0.6;font-size:11px;margin-top:6px;display:block">Coloque o @ da live e clique em ATIVAR AUTO - presentes reais vão imprimir sozinhos na Tela</small>
+</div>
+
+<div class="tabs">
+<div class="tab active" onclick="showTab(0)">🎮 Controle</div>
+<div class="tab" onclick="showTab(1)">💬 Chat</div>
+<div class="tab" onclick="showTab(2)">👥 Entradas</div>
+<div class="tab" onclick="showTab(3)">🎁 Hist</div>
+<div class="tab" onclick="showTab(4)">❓ FAQ</div>
+<div class="tab" onclick="showTab(5)">📢 Copy</div>
+</div>
+
+<div class="content">
+<div id="p0" class="panel active">
+<div class="card">
+<div class="card-title">@ DO SEGUIDOR (para manual)</div>
+<input id="nome" class="input" placeholder="Ex: maria_loja">
+</div>
+<div class="card">
+<div class="card-title">PRESENTES RÁPIDOS - MODO MANUAL (mesmo com AUTO ligado)</div>
+<div class="grid3">
+<div class="gift-btn" onclick="enviarGift('Rosa','🌹')"><span>🌹</span>Rosa</div>
+<div class="gift-btn" onclick="enviarGift('Leão','🦁')"><span>🦁</span>Leão</div>
+<div class="gift-btn" onclick="enviarGift('Coração','❤️')"><span>❤️</span>Coração</div>
+<div class="gift-btn" onclick="enviarGift('TikTok','🎵')"><span>🎵</span>TikTok</div>
+<div class="gift-btn" onclick="enviarGift('Donut','🍩')"><span>🍩</span>Donut</div>
+<div class="gift-btn" onclick="enviarGift('Sorvete','🍦')"><span>🍦</span>Sorvete</div>
+</div>
+<button class="btn-full" onclick="enviarCustom()">🚀 ENVIAR MANUAL PRA TELA</button>
+</div>
+<div class="card">
+<div style="display:flex;justify-content:space-between;font-size:12px"><span>Último:</span><span id="ultimo">-</span></div>
+<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:4px"><span>PPM:</span><span id="ppm">0/min</span></div>
+</div>
+</div>
+
+<div id="p1" class="panel">
+<div class="card"><div class="card-title">💬 CHAT AO VIVO (TikTok real + manual)</div><div id="chatList" class="list"></div></div>
+<div class="card"><textarea id="chatResp" class="input" rows="3" placeholder="Responder via impressora (não vai pro TikTok)"></textarea><button class="btn-full" onclick="responderChat()">💬 Responder na Impressora</button></div>
+</div>
+
+<div id="p2" class="panel">
+<div class="card"><div class="card-title">👥 QUEM ENTROU</div><div>Total: <span id="totalEnt">0</span></div><div id="entradasList" class="list" style="margin-top:10px"></div></div>
+</div>
+
+<div id="p3" class="panel">
+<div class="card"><div class="card-title">🎁 HISTÓRICO PRESENTES (manual + auto)</div><div>Total moedas: <span id="totalMoedas">0</span></div><div id="histPres" class="list" style="margin-top:10px"></div></div>
+</div>
+
+<div id="p4" class="panel">
+<div class="card"><div class="card-title">❓ FAQ - AQUECIMENTO</div><input id="faqP" class="input" placeholder="Pergunta"><input id="faqR" class="input" style="margin-top:8px" placeholder="Resposta"><button class="btn-full" onclick="dispararFAQ()">▶️ DISPARAR FAQ NA TELA</button></div>
+</div>
+
+<div id="p5" class="panel">
+<div class="card"><div class="card-title">📢 COPY</div><textarea id="copyT" class="input" rows="4" placeholder="Copy propaganda"></textarea><button class="btn-full" onclick="dispararCopy()">📢 ENVIAR COPY</button></div>
+<div class="card"><div style="font-size:12px;opacity:0.8">🧠 Modo Inteligente:<br>• &lt;5/min: áudio individual + pausa copy<br>• &gt;5/min: só texto + áudio em lote 2min</div></div>
+</div>
+
+</div>
+
+<script>
+let socket, room='LOJA', fila=0, presentes=[], entradas=[], ppmHistory=[];
+const params=new URLSearchParams(location.search);
+if(params.get('room')){ room=params.get('room'); document.getElementById('room').value=room; }
+
+function conectar(){
+  room=document.getElementById('room').value||'LOJA';
+  if(socket) socket.disconnect();
+  socket=io();
+  socket.on('connect',()=>{
+    document.getElementById('status').innerHTML='● Sala '+room+' OK';
+    document.getElementById('status').className='pill ok';
+    socket.emit('create_room',{roomId:room});
+    socket.emit('join_room',{roomId:room});
+  });
+  socket.on('paired',()=>{ document.getElementById('status').innerHTML='● Tela + Controle OK '+room; });
+  socket.on('member_event',(d)=>{ addEntrada(d.nome); addChat('👥 '+d.nome+' entrou'); });
+  socket.on('chat_event',(d)=>{ addChat('💬 '+d.nome+': '+d.mensagem); });
+  socket.on('tiktok_status',(d)=>{
+    const el=document.getElementById('tiktokStatus');
+    const msg=document.getElementById('tiktokMsg');
+    const btn=document.getElementById('btnAuto');
+    if(d.status==='conectado'){
+      el.innerHTML='● TikTok @'+d.username+' ✅'; el.className='pill ok';
+      msg.innerText='✅ Conectado na live @'+d.username+' - presentes reais vão imprimir sozinhos!';
+      btn.innerText='🟢 AUTO ON @'+d.username; btn.className='btn btn-auto ativo';
+    } else if(d.status==='simulacao'){
+      el.innerHTML='● TikTok simulação'; el.className='pill warn';
+      msg.innerText='⚠️ Modo simulação - adicione tiktok-live-connector no servidor para AUTO real';
+      btn.innerText='⚠️ Simulação'; btn.className='btn btn-auto';
+    } else if(d.status==='erro'){
+      el.innerHTML='● Erro @'+d.username; el.className='pill error';
+      msg.innerText='❌ Erro: '+(d.error||'Live não encontrada ou offline');
+      btn.innerText='🔴 Tentar de novo'; btn.className='btn btn-auto erro';
+    } else {
+      el.innerHTML='● TikTok Desconectado'; el.className='pill';
+      msg.innerText='Coloque o @ da live e clique em ATIVAR AUTO';
+      btn.innerText='🔴 ATIVAR AUTO'; btn.className='btn btn-auto';
+    }
+  });
+}
+
+function showTab(i){
+  document.querySelectorAll('.panel').forEach((p,idx)=>p.classList.toggle('active',idx===i));
+  document.querySelectorAll('.tab').forEach((t,idx)=>t.classList.toggle('active',idx===i));
+}
+
+async function ativarAuto(){
+  const username=document.getElementById('tiktokUser').value;
+  if(!username){ alert('Coloque o @ da live! Ex: @greensinal'); return; }
+  room=document.getElementById('room').value||'LOJA';
+  document.getElementById('tiktokStatus').innerHTML='● Conectando @'+username+'...';
+  document.getElementById('tiktokStatus').className='pill warn';
+  document.getElementById('btnAuto').innerText='⏳ Conectando...';
+  
+  try{
+    const res=await fetch('/api/tiktok/connect',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({roomId:room,username:username})
+    });
+    const data=await res.json();
+    console.log('TikTok connect',data);
+    if(!data.success){ alert('Erro: '+(data.error||'Falha')); }
+  }catch(e){
+    alert('Erro ao conectar: '+e.message);
+    document.getElementById('tiktokStatus').innerHTML='● Erro conexão';
+    document.getElementById('tiktokStatus').className='pill error';
+  }
+}
+
+function enviarGift(presente,icone){
+  if(!socket){ alert('Conecta na sala primeiro!'); return; }
+  const nome=document.getElementById('nome').value||'Anônimo';
+  const data={roomId:room,nome:nome,presente:presente,icone:icone,tipo:'manual',timestamp:Date.now()};
+  socket.emit('gift_manual',data);
+  onEnviado(data);
+}
+
+function enviarCustom(){
+  const p=document.getElementById('presente')?.value||'Rosa';
+  const i=document.getElementById('icone')?.value||'🌹';
+  enviarGift(p,i);
+}
+
+function onEnviado(data){
+  fila++; document.getElementById('filaPill').innerText='Fila: '+fila;
+  document.getElementById('ultimo').innerText=data.nome+' - '+data.presente;
+  presentes.unshift(data);
+  ppmHistory.push(Date.now()); ppmHistory=ppmHistory.filter(t=>Date.now()-t<60000);
+  document.getElementById('ppm').innerText=ppmHistory.length+'/min';
+  const c=document.getElementById('histPres'); c.innerHTML='';
+  presentes.slice(0,20).forEach(p=>{
+    const div=document.createElement('div');div.className='item';
+    div.innerHTML=`<span>${p.icone} ${p.nome} - ${p.presente}</span><span style="opacity:0.5">${new Date(p.timestamp).toLocaleTimeString()}</span>`;
+    c.appendChild(div);
+  });
+  if(navigator.vibrate) navigator.vibrate(50);
+}
+
+function addEntrada(nome){
+  entradas.unshift({nome,time:new Date().toLocaleTimeString()});
+  document.getElementById('totalEnt').innerText=entradas.length;
+  const div=document.createElement('div');div.className='item';
+  div.innerHTML=`<span><b>${nome}</b> entrou</span><button class="btn" style="width:auto;padding:6px 12px;font-size:12px;background:#222" onclick="document.getElementById('nome').value='${nome}'">Chamar</button>`;
+  document.getElementById('entradasList').prepend(div);
+}
+
+function addChat(txt){
+  const div=document.createElement('div');div.className='item';
+  div.innerHTML=`<span>${txt}</span><span style="opacity:0.5">${new Date().toLocaleTimeString()}</span>`;
+  document.getElementById('chatList').prepend(div);
+}
+
+function responderChat(){
+  const txt=document.getElementById('chatResp').value;
+  if(!txt) return;
+  const data={roomId:room,nome:'Resposta',presente:txt,icone:'💬',tipo:'resposta',timestamp:Date.now()};
+  socket.emit('gift_manual',data);
+  onEnviado(data);
+  document.getElementById('chatResp').value='';
+}
+
+function dispararFAQ(){
+  const p=document.getElementById('faqP').value, r=document.getElementById('faqR').value;
+  if(!p||!r){alert('Preenche pergunta e resposta');return;}
+  socket.emit('faq_event',{roomId:room,pergunta:p,resposta:r});
+  addChat('❓ FAQ: '+p);
+}
+
+function dispararCopy(){
+  const t=document.getElementById('copyT').value;
+  if(!t) return;
+  socket.emit('copy_event',{roomId:room,mensagem:t,tipo:'copy'});
+  addChat('📢 COPY: '+t.substring(0,30));
+}
+
+conectar();
+</script></body></html>
