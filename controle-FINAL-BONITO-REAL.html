@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>CONTROLE PRO 9:16 - REAL</title>
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#fff;font-family:'Inter',sans-serif;display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+.header{background:linear-gradient(180deg,#1a1a1a,#111);padding:12px 14px;border-bottom:1px solid #222}
+.room-row{display:flex;gap:8px;align-items:center}
+.room-row input{flex:1;padding:12px 14px;border-radius:10px;border:1px solid #333;background:#1e1e1e;color:#fff;font-weight:600;font-size:15px}
+.btn-conn{padding:12px 18px;border-radius:10px;border:none;background:#25F4EE;color:#000;font-weight:800;font-size:13px}
+.status-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.pill{font-size:11px;padding:5px 10px;border-radius:20px;background:#222;border:1px solid #333}
+.pill.ok{background:#22c55e22;border-color:#22c55e;color:#22c55e}
+.pill.warn{background:#f59e0b22;border-color:#f59e0b;color:#f59e0b}
+.tabs{display:flex;gap:6px;padding:10px;background:#0f0f0f;border-bottom:1px solid #222;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:8px 14px;border-radius:20px;background:#1e1e1e;border:1px solid #2a2a2a;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer;transition:0.2s}
+.tab.active{background:#FE2C55;border-color:#FE2C55;color:#fff;transform:scale(1.05)}
+.content{flex:1;overflow-y:auto;padding:12px;background:radial-gradient(800px 400px at 50% -100px,#1a1a1a,transparent),#0a0a0a}
+.panel{display:none;flex-direction:column;gap:10px}
+.panel.active{display:flex}
+.card{background:#151515;border:1px solid #222;border-radius:14px;padding:12px}
+.card-title{font-size:11px;opacity:0.6;letter-spacing:1px;margin-bottom:8px}
+.input{width:100%;padding:14px;border-radius:12px;border:1px solid #2a2a2a;background:#1e1e1e;color:#fff;font-size:15px}
+.input:focus{border-color:#FE2C55;outline:none}
+.btn{width:100%;padding:16px;border-radius:12px;border:none;font-weight:800;font-size:16px;cursor:pointer;transition:0.1s}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:linear-gradient(135deg,#FE2C55,#FE2C55);color:#fff;box-shadow:0 6px 20px #FE2C5540}
+.btn-secondary{background:#222;color:#fff;border:1px solid #333}
+.btn-ghost{background:transparent;border:1px dashed #333;color:#888}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gift-btn{background:#1e1e1e;border:1px solid #2a2a2a;border-radius:14px;padding:14px 6px;text-align:center;font-size:12px;font-weight:600;cursor:pointer}
+.gift-btn:active{background:#FE2C55;border-color:#FE2C55}
+.gift-btn span{font-size:22px;display:block;margin-bottom:4px}
+.preview{position:sticky;bottom:0;background:linear-gradient(0deg,#0a0a0a 80%,transparent);padding-top:10px}
+.kpi{display:flex;justify-content:space-between;font-size:12px;opacity:0.8}
+.list{max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.item{background:#1a1a1a;border:1px solid #222;border-radius:10px;padding:10px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;margin-right:6px}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+.pulse{animation:pulse 0.5s}
+</style></head><body>
+<div class="header">
+<div class="room-row">
+<input id="room" value="LOJA" placeholder="Nome da sala">
+<button class="btn-conn" onclick="conectar()">CONECTAR</button>
+</div>
+<div class="status-row">
+<div id="status" class="pill warn">● Conectando...</div>
+<div id="filaPill" class="pill">Fila: 0</div>
+<div id="modoPill" class="pill">🧠 Inteligente ON</div>
+</div>
+</div>
+
+<div class="tabs">
+<div class="tab active" onclick="showTab(0)">🎮 Controle</div>
+<div class="tab" onclick="showTab(1)">💬 Chat</div>
+<div class="tab" onclick="showTab(2)">👥 Entradas</div>
+<div class="tab" onclick="showTab(3)">🎁 Hist</div>
+<div class="tab" onclick="showTab(4)">❓ FAQ</div>
+<div class="tab" onclick="showTab(5)">📢 Copy</div>
+</div>
+
+<div class="content">
+<!-- TAB 0 CONTROLE -->
+<div id="p0" class="panel active">
+<div class="card">
+<div class="card-title">@ DO SEGUIDOR</div>
+<input id="nome" class="input" placeholder="Ex: maria_loja, joao123" value="">
+</div>
+
+<div class="card">
+<div class="card-title">PRESENTES RÁPIDOS - CLIQUE PRA ENVIAR</div>
+<div class="grid3">
+<div class="gift-btn" onclick="enviarGift('Rosa','🌹')"><span>🌹</span>Rosa<br><small>1 moeda</small></div>
+<div class="gift-btn" onclick="enviarGift('Leão','🦁')"><span>🦁</span>Leão<br><small>299</small></div>
+<div class="gift-btn" onclick="enviarGift('Coração','❤️')"><span>❤️</span>Coração</div>
+<div class="gift-btn" onclick="enviarGift('TikTok','🎵')"><span>🎵</span>TikTok</div>
+<div class="gift-btn" onclick="enviarGift('Donut','🍩')"><span>🍩</span>Donut</div>
+<div class="gift-btn" onclick="enviarGift('Sorvete','🍦')"><span>🍦</span>Sorvete</div>
+<div class="gift-btn" onclick="enviarGift('Perfume','🧴')"><span>🧴</span>Perfume</div>
+<div class="gift-btn" onclick="enviarGift('Coroa','👑')"><span>👑</span>Coroa</div>
+<div class="gift-btn" onclick="enviarGift('Fogos','🎆')"><span>🎆</span>Fogos</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">PRESENTE CUSTOM</div>
+<div class="grid2">
+<input id="presente" class="input" placeholder="Nome presente">
+<input id="icone" class="input" placeholder="Icone" value="🌹">
+</div>
+<button class="btn btn-primary" onclick="enviarCustom()" style="margin-top:10px">🚀 ENVIAR PRA TELA DA LOJA</button>
+<div class="grid2" style="margin-top:8px">
+<button class="btn btn-secondary" onclick="limparFila()">🗑️ Limpar</button>
+<button class="btn btn-secondary" onclick="pausarFila()">⏸️ Pausar</button>
+</div>
+</div>
+
+<div class="preview">
+<div class="card">
+<div class="kpi"><span>Último enviado:</span><span id="ultimo">-</span></div>
+<div class="kpi" style="margin-top:6px"><span>Presentes/min:</span><span id="ppm">0</span></div>
+</div>
+</div>
+</div>
+
+<!-- TAB 1 CHAT -->
+<div id="p1" class="panel">
+<div class="card"><div class="card-title">💬 CHAT AO VIVO (só leitura TikTok)</div><div id="chatList" class="list"></div></div>
+<div class="card"><div class="card-title">RESPONDER VIA IMPRESSORA</div><textarea id="chatResp" class="input" rows="3" placeholder="Ex: Obrigado maria! Seu tapete já está reservado!"></textarea><button class="btn btn-primary" onclick="responderChat()" style="margin-top:8px">💬 Mostrar resposta na Tela</button><small style="opacity:0.5;margin-top:6px;display:block">Essa resposta NÃO vai pro TikTok, só aparece na impressora pra você falar na live</small></div>
+</div>
+
+<!-- TAB 2 ENTRADAS -->
+<div id="p2" class="panel">
+<div class="card"><div class="card-title">👥 QUEM ENTROU NA LIVE</div><div class="kpi"><span>Total hoje:</span><span id="totalEnt">0</span></div><div id="entradasList" class="list" style="margin-top:10px"></div></div>
+<div class="card"><small style="opacity:0.6">O TikTok não manda evento de saída, só entrada. Estimativa de saída: 3 min sem interagir = saiu.</small></div>
+</div>
+
+<!-- TAB 3 HIST -->
+<div id="p3" class="panel">
+<div class="card"><div class="card-title">🎁 HISTÓRICO PRESENTES</div><div class="kpi"><span>Total moedas:</span><span id="totalMoedas">0</span></div><div class="kpi"><span>Ranking Top:</span><span id="topUser">-</span></div><button class="btn btn-ghost" style="margin-top:10px" onclick="exportCSV()">📥 Exportar CSV</button><div id="histPres" class="list" style="margin-top:10px"></div></div>
+</div>
+
+<!-- TAB 4 FAQ -->
+<div id="p4" class="panel">
+<div class="card"><div class="card-title">❓ BANCO FAQ - AQUECIMENTO</div><input id="faqP" class="input" placeholder="Pergunta: Esse verde desbota no sol?"><input id="faqR" class="input" style="margin-top:8px" placeholder="Resposta: Não, UV 3 anos garantido"><button class="btn btn-primary" onclick="dispararFAQ()" style="margin-top:10px">▶️ DISPARAR FAQ NA TELA</button></div>
+<div class="card"><div class="card-title">EXEMPLOS PRONTOS - CLIQUE PRA USAR</div>
+<div class="item" onclick="usarFAQ('Esse tapete desbota?','Não! UV 3 anos, pode por no sol')"><span>❓ Desbota? → Não, UV 3 anos</span><span>▶️</span></div>
+<div class="item" onclick="usarFAQ('Entrega em Franco da Rocha?','Sim! Entrega grátis acima de R$300')"><span>🚚 Entrega? → Grátis acima R$300</span><span>▶️</span></div>
+<div class="item" onclick="usarFAQ('Qual a diferença do Premium?','30mm mais macio, base mais firme')"><span>⭐ Premium? → 30mm mais macio</span><span>▶️</span></div>
+<div class="item" onclick="usarFAQ('Tem pronta entrega?','Sim! 50 cores pronta entrega')"><span>📦 Pronta entrega? → 50 cores</span><span>▶️</span></div>
+</div>
+<div class="card"><label style="font-size:13px"><input type="checkbox" id="autoFAQ"> <span>Disparar FAQ automático se ficar 2 min sem presente</span></label></div>
+</div>
+
+<!-- TAB 5 COPY -->
+<div id="p5" class="panel">
+<div class="card"><div class="card-title">📢 COPY - PROPAGANDA</div><textarea id="copyT" class="input" rows="4" placeholder="Ex: GALERA! Tapete Premium 20% OFF só hoje! Link na bio, entrega grátis Morato!"></textarea><button class="btn btn-primary" onclick="dispararCopy()" style="margin-top:10px">📢 ENVIAR COPY PRA TELA</button></div>
+<div class="card"><div class="card-title">🧠 MODO INTELIGENTE (você criou)</div><div style="font-size:12px;line-height:1.5;opacity:0.8">
+• Se <5 presentes/min (live fria): pausa copy, toca áudio individual de agradecimento, volta copy de onde parou<br><br>
+• Se >5 presentes/min (live bombando): só imprime texto visual, guarda áudios pra agradecer em lote a cada 2 min, copy continua rodando<br><br>
+<label><input type="checkbox" checked id="modoInteligente"> Ativar modo inteligente</label>
+</div></div>
+<div class="card"><div class="card-title">COPIES SALVAS</div>
+<div class="item" onclick="usarCopy('🔥 20% OFF hoje! Tapete Premium, entrega grátis!')"><span>🔥 20% OFF</span><span>▶️</span></div>
+<div class="item" onclick="usarCopy('📦 50 cores pronta entrega! Chama no Whats!')"><span>📦 50 cores</span><span>▶️</span></div>
+</div>
+</div>
+
+</div>
+
+<script>
+let socket, room='LOJA', fila=0, presentes=[], entradas=[], chats=[], ppmHistory=[];
+const params = new URLSearchParams(location.search);
+if(params.get('room')){ room=params.get('room'); document.getElementById('room').value=room; }
+
+function conectar(){
+  room = document.getElementById('room').value || 'LOJA';
+  if(socket) socket.disconnect();
+  socket = io();
+  socket.on('connect', ()=>{
+    document.getElementById('status').innerHTML = '● Conectado SALA '+room;
+    document.getElementById('status').className='pill ok';
+    socket.emit('create_room',{roomId:room});
+    socket.emit('join_room',{roomId:room});
+    console.log('Conectado sala',room);
+  });
+  socket.on('disconnect', ()=>{
+    document.getElementById('status').innerHTML='● Desconectado';
+    document.getElementById('status').className='pill warn';
+  });
+  socket.on('paired', ()=>{
+    document.getElementById('status').innerHTML='● Tela + Controle OK - '+room;
+    document.getElementById('status').className='pill ok';
+  });
+  socket.on('member_event',(d)=>{ addEntrada(d.nome||d.user||'Alguém'); });
+  socket.on('chat_event',(d)=>{ addChat(d.nome+': '+d.mensagem); });
+}
+
+function showTab(i){
+  document.querySelectorAll('.panel').forEach((p,idx)=>p.classList.toggle('active',idx===i));
+  document.querySelectorAll('.tab').forEach((t,idx)=>t.classList.toggle('active',idx===i));
+}
+
+function enviarGift(nomePresente, icone){
+  if(!socket){ alert('Clica em CONECTAR primeiro!'); return; }
+  const nomeSeguidor = document.getElementById('nome').value || 'Anônimo';
+  const data = {
+    roomId: room,
+    nome: nomeSeguidor,
+    presente: nomePresente,
+    icone: icone,
+    tipo: 'manual',
+    timestamp: Date.now()
+  };
+  console.log('ENVIANDO REAL:', data);
+  socket.emit('gift_manual', data);
+  onEnviado(data);
+}
+
+function enviarCustom(){
+  const p = document.getElementById('presente').value || 'Rosa';
+  const i = document.getElementById('icone').value || '🌹';
+  enviarGift(p,i);
+}
+
+function onEnviado(data){
+  fila++;
+  document.getElementById('filaPill').innerText='Fila: '+fila;
+  document.getElementById('ultimo').innerText=data.nome+' - '+data.presente;
+  presentes.unshift(data);
+  updatePresentes();
+  addChat('✅ ENVIADO: '+data.nome+' → '+data.icone+' '+data.presente);
+  // PPM
+  ppmHistory.push(Date.now());
+  ppmHistory = ppmHistory.filter(t=>Date.now()-t<60000);
+  document.getElementById('ppm').innerText=ppmHistory.length+'/min';
+  if(navigator.vibrate) navigator.vibrate(60);
+  // pulse
+  document.getElementById('ultimo').classList.add('pulse');
+  setTimeout(()=>document.getElementById('ultimo').classList.remove('pulse'),500);
+}
+
+function responderChat(){
+  const txt = document.getElementById('chatResp').value;
+  if(!txt) return;
+  const data = {roomId:room,nome:'Resposta',presente:txt,icone:'💬',tipo:'resposta'};
+  socket.emit('gift_manual', data);
+  onEnviado(data);
+  document.getElementById('chatResp').value='';
+}
+
+function addEntrada(nome){
+  entradas.unshift({nome,time:new Date().toLocaleTimeString()});
+  document.getElementById('totalEnt').innerText=entradas.length;
+  const div = document.createElement('div');
+  div.className='item';
+  div.innerHTML=`<span><span class="dot"></span><b>${nome}</b> entrou ${new Date().toLocaleTimeString()}</span><button class="btn" style="width:auto;padding:6px 12px;font-size:12px;background:#222" onclick="document.getElementById('nome').value='${nome}';showTab(0)">Chamar</button>`;
+  document.getElementById('entradasList').prepend(div);
+}
+
+function addChat(txt){
+  const div=document.createElement('div');
+  div.className='item';
+  div.innerHTML=`<span>${txt}</span><span style="opacity:0.5">${new Date().toLocaleTimeString()}</span>`;
+  document.getElementById('chatList').prepend(div);
+}
+
+function updatePresentes(){
+  let moedas = presentes.length*5;
+  document.getElementById('totalMoedas').innerText=moedas+' moedas';
+  // top user
+  const counts={}; presentes.forEach(p=>{counts[p.nome]=(counts[p.nome]||0)+1});
+  let top='-'; let max=0; for(let k in counts){ if(counts[k]>max){max=counts[k]; top=k+' ('+max+')';}}
+  document.getElementById('topUser').innerText=top;
+  const c=document.getElementById('histPres'); c.innerHTML='';
+  presentes.slice(0,30).forEach(p=>{
+    const div=document.createElement('div');div.className='item';
+    div.innerHTML=`<span>${p.icone} <b>${p.nome}</b> - ${p.presente}</span><span style="opacity:0.5">${new Date(p.timestamp).toLocaleTimeString()}</span>`;
+    c.appendChild(div);
+  });
+}
+
+function dispararFAQ(){
+  const p=document.getElementById('faqP').value, r=document.getElementById('faqR').value;
+  if(!p||!r){alert('Preenche pergunta e resposta');return;}
+  const data={roomId:room,tipo:'faq',pergunta:p,resposta:r};
+  socket.emit('faq_event',data);
+  addChat('❓ FAQ disparado: '+p);
+  document.getElementById('faqP').value=''; document.getElementById('faqR').value='';
+}
+
+function usarFAQ(p,r){ document.getElementById('faqP').value=p; document.getElementById('faqR').value=r; dispararFAQ(); }
+
+function dispararCopy(){
+  const t=document.getElementById('copyT').value;
+  if(!t) return;
+  socket.emit('copy_event',{roomId:room,mensagem:t,tipo:'copy'});
+  addChat('📢 COPY disparado: '+t.substring(0,30)+'...');
+}
+
+function usarCopy(t){ document.getElementById('copyT').value=t; dispararCopy(); }
+
+function limparFila(){ fila=0; document.getElementById('filaPill').innerText='Fila: 0'; socket.emit('gift_manual',{roomId:room,tipo:'clear'}); }
+function pausarFila(){ socket.emit('gift_manual',{roomId:room,tipo:'pause'}); addChat('⏸️ Pausado'); }
+function exportCSV(){
+  let csv='nome,presente,icone,hora\n';
+  presentes.forEach(p=>{ csv+=`${p.nome},${p.presente},${p.icone},${new Date(p.timestamp).toLocaleString()}\n`; });
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='presentes_'+room+'.csv'; a.click();
+}
+
+conectar();
+</script></body></html>
